@@ -9,6 +9,7 @@ import ServiceTypes from "./pages/ServiceTypes";
 import TimeSlotManagement from "./pages/TimeSlotManagement";
 import PublicBooking from "./pages/PublicBooking";
 import Bookings from "./pages/Bookings";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
                               element={<TimeSlotManagement />}
                          />
                          <Route path="/bookings" element={<Bookings />} />
+                         <Route path="/settings" element={<Settings />} />
 
                          {/* Página pública de agendamento para clientes */}
                          <Route path="/agendar" element={<PublicBooking />} />

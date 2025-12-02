@@ -30,10 +30,12 @@ import {
      X,
      CheckCircle,
      AlertCircle,
+     MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 const TEMP_PROFESSIONAL_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -101,6 +103,11 @@ const Bookings = () => {
                console.error("Erro ao cancelar agendamento:", error);
                toast.error("Erro ao cancelar agendamento");
           }
+     };
+
+     const handleSendWhatsApp = (booking: BookingWithDetails) => {
+          const message = `Olá ${booking.patient_name}! Tudo bem?\n\nEntrando em contato sobre seu agendamento.`;
+          openWhatsApp(booking.patient_phone, message);
      };
 
      const upcomingBookings = bookings.filter(
@@ -274,6 +281,18 @@ const Bookings = () => {
                                                                  <StatusIcon className="w-3 h-3 mr-1" />
                                                                  {status.label}
                                                             </Badge>
+                                                            <Button
+                                                                 variant="ghost"
+                                                                 size="sm"
+                                                                 onClick={() =>
+                                                                      handleSendWhatsApp(
+                                                                           booking
+                                                                      )
+                                                                 }
+                                                                 title="Enviar WhatsApp"
+                                                            >
+                                                                 <MessageCircle className="w-4 h-4" />
+                                                            </Button>
                                                             {booking.status ===
                                                                  "confirmed" && (
                                                                  <Button
@@ -285,6 +304,7 @@ const Bookings = () => {
                                                                                 booking.patient_name
                                                                            )
                                                                       }
+                                                                      title="Cancelar agendamento"
                                                                  >
                                                                       <X className="w-4 h-4" />
                                                                  </Button>

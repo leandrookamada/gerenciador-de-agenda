@@ -19,10 +19,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Clock, User, Mail, Phone } from "lucide-react";
+import {
+     Calendar,
+     Clock,
+     User,
+     Mail,
+     Phone,
+     MessageCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+     openWhatsApp,
+     getClientConfirmationMessage,
+     getProfessionalNotificationMessage,
+} from "@/lib/whatsapp";
 
 // Por enquanto, usando ID fixo. Depois virá da URL: /agendar/:professionalId
 const TEMP_PROFESSIONAL_ID = "00000000-0000-0000-0000-000000000000";
@@ -125,7 +137,60 @@ const PublicBooking = () => {
 
                if (error) throw error;
 
-               toast.success("Agendamento realizado com sucesso!");
+               // 3. Preparar dados para mensagens WhatsApp
+               const selectedType = serviceTypes.find(
+                    (t) => t.id === selectedServiceType
+               );
+               const dateFormatted = format(
+                    new Date(selectedSlot.slot_date),
+                    "dd/MM/yyyy",
+                    { locale: ptBR }
+               );
+               const timeFormatted = selectedSlot.start_time.substring(0, 5);
+
+               // 4. Enviar confirmação para o cliente via WhatsApp
+               const clientMessage = getClientConfirmationMessage({
+                    patientName: formData.patientName,
+                    serviceName: selectedType?.name || "Atendimento",
+                    date: dateFormatted,
+                    time: timeFormatted,
+               });
+
+               toast.success("Agendamento realizado com sucesso!", {
+                    action: {
+                         label: "Abrir WhatsApp",
+                         onClick: () =>
+                              openWhatsApp(
+                                   formData.patientPhone,
+                                   clientMessage
+                              ),
+                    },
+                    duration: 10000,
+               });
+
+               // 5. Notificar o profissional
+               const professionalPhone =
+                    localStorage.getItem("professional_phone");
+               if (professionalPhone) {
+                    const professionalMessage =
+                         getProfessionalNotificationMessage({
+                              patientName: formData.patientName,
+                              patientPhone: formData.patientPhone,
+                              serviceName: selectedType?.name || "Atendimento",
+                              date: dateFormatted,
+                              time: timeFormatted,
+                         });
+
+                    // Abrir WhatsApp do profissional em outra aba
+                    setTimeout(() => {
+                         openWhatsApp(professionalPhone, professionalMessage);
+                    }, 2000);
+               }
+
+               // 6. Abrir WhatsApp do cliente com confirmação
+               setTimeout(() => {
+                    openWhatsApp(formData.patientPhone, clientMessage);
+               }, 1000);
 
                // Resetar formulário
                setFormData({

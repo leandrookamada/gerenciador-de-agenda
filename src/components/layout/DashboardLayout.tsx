@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import {
      Calendar,
      LogOut,
-     Settings,
+     Settings as SettingsIcon,
      LayoutDashboard,
      CalendarCheck,
+     ClipboardList,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -20,9 +21,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
      const navigation = [
           { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-          { name: "Tipos de Serviço", href: "/service-types", icon: Settings },
+          {
+               name: "Tipos de Serviço",
+               href: "/service-types",
+               icon: ClipboardList,
+          },
           { name: "Gerenciar Horários", href: "/time-slots", icon: Calendar },
           { name: "Agendamentos", href: "/bookings", icon: CalendarCheck },
+          { name: "Configurações", href: "/settings", icon: SettingsIcon },
      ];
 
      return (

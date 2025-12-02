@@ -94,11 +94,9 @@ const PublicBooking = () => {
                     endDate
                );
 
-               // Filtrar slots do tipo de serviço selecionado ou sem tipo definido
+               // Filtrar APENAS slots do tipo de serviço selecionado
                const filtered = data.filter(
-                    (slot) =>
-                         !slot.service_type_id ||
-                         slot.service_type_id === selectedServiceType
+                    (slot) => slot.service_type_id === selectedServiceType
                );
 
                setSlots(filtered);
@@ -233,58 +231,65 @@ const PublicBooking = () => {
                          </p>
                     </div>
 
-                    {/* Seleção de tipo de serviço */}
-                    <Card className="mb-6">
-                         <CardHeader>
-                              <CardTitle className="flex items-center gap-2">
-                                   <Clock className="w-5 h-5" />
-                                   Tipo de Serviço
-                              </CardTitle>
-                              <CardDescription>
-                                   Escolha o tipo de atendimento desejado
-                              </CardDescription>
-                         </CardHeader>
-                         <CardContent>
-                              {serviceTypes.length === 0 ? (
-                                   <p className="text-center text-muted-foreground py-4">
-                                        Nenhum serviço disponível no momento
-                                   </p>
-                              ) : (
-                                   <div className="grid gap-3 md:grid-cols-2">
-                                        {serviceTypes.map((type) => (
-                                             <div
-                                                  key={type.id}
-                                                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                                                       selectedServiceType ===
-                                                       type.id
-                                                            ? "border-primary bg-primary/5"
-                                                            : "border-border hover:border-primary/50"
-                                                  }`}
-                                                  onClick={() =>
-                                                       setSelectedServiceType(
+                    {/* Seleção de tipo de serviço - oculta se tipo vier da URL */}
+                    {!tipoParam && (
+                         <Card className="mb-6">
+                              <CardHeader>
+                                   <CardTitle className="flex items-center gap-2">
+                                        <Clock className="w-5 h-5" />
+                                        Tipo de Serviço
+                                   </CardTitle>
+                                   <CardDescription>
+                                        Escolha o tipo de atendimento desejado
+                                   </CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                   {serviceTypes.length === 0 ? (
+                                        <p className="text-center text-muted-foreground py-4">
+                                             Nenhum serviço disponível no
+                                             momento
+                                        </p>
+                                   ) : (
+                                        <div className="grid gap-3 md:grid-cols-2">
+                                             {serviceTypes.map((type) => (
+                                                  <div
+                                                       key={type.id}
+                                                       className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                                            selectedServiceType ===
                                                             type.id
-                                                       )
-                                                  }
-                                             >
-                                                  <div className="font-semibold">
-                                                       {type.name}
-                                                  </div>
-                                                  <div className="text-sm text-muted-foreground mt-1">
-                                                       Duração:{" "}
-                                                       {type.duration_minutes}{" "}
-                                                       minutos
-                                                  </div>
-                                                  {type.description && (
-                                                       <div className="text-xs text-muted-foreground mt-2">
-                                                            {type.description}
+                                                                 ? "border-primary bg-primary/5"
+                                                                 : "border-border hover:border-primary/50"
+                                                       }`}
+                                                       onClick={() =>
+                                                            setSelectedServiceType(
+                                                                 type.id
+                                                            )
+                                                       }
+                                                  >
+                                                       <div className="font-semibold">
+                                                            {type.name}
                                                        </div>
-                                                  )}
-                                             </div>
-                                        ))}
-                                   </div>
-                              )}
-                         </CardContent>
-                    </Card>
+                                                       <div className="text-sm text-muted-foreground mt-1">
+                                                            Duração:{" "}
+                                                            {
+                                                                 type.duration_minutes
+                                                            }{" "}
+                                                            minutos
+                                                       </div>
+                                                       {type.description && (
+                                                            <div className="text-xs text-muted-foreground mt-2">
+                                                                 {
+                                                                      type.description
+                                                                 }
+                                                            </div>
+                                                       )}
+                                                  </div>
+                                             ))}
+                                        </div>
+                                   )}
+                              </CardContent>
+                         </Card>
+                    )}
 
                     {/* Horários disponíveis */}
                     {selectedServiceType && (

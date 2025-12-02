@@ -192,6 +192,18 @@ export async function markSlotAsBooked(slotId: string) {
      return data as TimeSlot;
 }
 
+export async function markSlotAsAvailable(slotId: string) {
+     const resp = await (supabase as any)
+          .from("time_slots")
+          .update({ is_available: true })
+          .eq("id", slotId)
+          .select()
+          .single();
+     const { data, error } = resp as { data: TimeSlot | null; error: any };
+     if (error) throw error;
+     return data as TimeSlot;
+}
+
 // ===== HELPER: Generate slots automatically =====
 export async function generateTimeSlots(
      professionalId: string,
@@ -214,4 +226,81 @@ export async function generateTimeSlots(
      const { data, error } = resp as { data: number | null; error: any };
      if (error) throw error;
      return data ?? 0; // Retorna o número de slots criados
+}
+
+// ===== BOOKINGS =====
+export type Booking = {
+     id: string;
+     professional_id: string;
+     service_type_id: string | null;
+     time_slot_id: string | null;
+     patient_name: string;
+     patient_phone: string;
+     patient_email: string | null;
+     notes: string | null;
+     status: "confirmed" | "cancelled" | "completed";
+     created_at: string;
+     updated_at: string;
+};
+
+export type BookingWithDetails = Booking & {
+     service_type?: ServiceType;
+     time_slot?: TimeSlot;
+};
+
+export async function listBookings(
+     professionalId: string,
+     filters?: {
+          status?: string;
+          startDate?: string;
+          endDate?: string;
+     }
+) {
+     let query = (supabase as any)
+          .from("bookings")
+          .select(
+               `
+               *,
+               service_type:service_types(*),
+               time_slot:time_slots(*)
+          `
+          )
+          .eq("professional_id", professionalId);
+
+     if (filters?.status) {
+          query = query.eq("status", filters.status);
+     }
+
+     if (filters?.startDate && filters?.endDate) {
+          query = query
+               .gte("time_slot.slot_date", filters.startDate)
+               .lte("time_slot.slot_date", filters.endDate);
+     }
+
+     const resp = await query.order("created_at", { ascending: false });
+     const { data, error } = resp as {
+          data: BookingWithDetails[] | null;
+          error: any;
+     };
+     if (error) throw error;
+     return data ?? [];
+}
+
+export async function cancelBooking(bookingId: string) {
+     // 1. Atualizar status do booking
+     const { data: booking, error: bookingError } = await (supabase as any)
+          .from("bookings")
+          .update({ status: "cancelled" })
+          .eq("id", bookingId)
+          .select()
+          .single();
+
+     if (bookingError) throw bookingError;
+
+     // 2. Liberar o slot novamente
+     if (booking.time_slot_id) {
+          await markSlotAsAvailable(booking.time_slot_id);
+     }
+
+     return booking as Booking;
 }

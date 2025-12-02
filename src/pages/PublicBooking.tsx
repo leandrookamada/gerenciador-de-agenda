@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import {
      listActiveServiceTypes,
      listAvailableSlots,
@@ -29,7 +29,9 @@ const TEMP_PROFESSIONAL_ID = "00000000-0000-0000-0000-000000000000";
 
 const PublicBooking = () => {
      const { professionalId } = useParams<{ professionalId?: string }>();
+     const [searchParams] = useSearchParams();
      const profId = professionalId || TEMP_PROFESSIONAL_ID;
+     const tipoParam = searchParams.get("tipo");
 
      const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
      const [selectedServiceType, setSelectedServiceType] = useState<string>("");
@@ -58,6 +60,11 @@ const PublicBooking = () => {
           try {
                const data = await listActiveServiceTypes(profId);
                setServiceTypes(data);
+
+               // Se veio com parâmetro "tipo" na URL, pré-selecionar
+               if (tipoParam && data.find((t) => t.id === tipoParam)) {
+                    setSelectedServiceType(tipoParam);
+               }
           } catch (error) {
                console.error("Erro ao carregar tipos de serviço:", error);
                toast.error("Erro ao carregar tipos de serviço");
@@ -103,22 +110,16 @@ const PublicBooking = () => {
                await markSlotAsBooked(selectedSlot.id);
 
                // 2. Criar agendamento
-               const startDateTime = `${selectedSlot.slot_date}T${selectedSlot.start_time}`;
-               const endDateTime = `${selectedSlot.slot_date}T${selectedSlot.end_time}`;
-
                const { error } = await (supabase as any)
-                    .from("appointments")
+                    .from("bookings")
                     .insert({
                          professional_id: profId,
-                         schedule_id: null, // Não usamos mais schedule_id neste modelo
                          service_type_id: selectedServiceType,
                          time_slot_id: selectedSlot.id,
                          patient_name: formData.patientName,
                          patient_phone: formData.patientPhone,
                          patient_email: formData.patientEmail || null,
                          notes: formData.notes || null,
-                         start_time: startDateTime,
-                         end_time: endDateTime,
                          status: "confirmed",
                     });
 

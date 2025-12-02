@@ -1,7 +1,13 @@
 import { ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Calendar, LogOut, Settings, LayoutDashboard } from "lucide-react";
+import {
+     Calendar,
+     LogOut,
+     Settings,
+     LayoutDashboard,
+     CalendarCheck,
+} from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 interface DashboardLayoutProps {
@@ -16,6 +22,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
           { name: "Tipos de Serviço", href: "/service-types", icon: Settings },
           { name: "Gerenciar Horários", href: "/time-slots", icon: Calendar },
+          { name: "Agendamentos", href: "/bookings", icon: CalendarCheck },
      ];
 
      return (

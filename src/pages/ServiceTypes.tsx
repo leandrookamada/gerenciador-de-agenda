@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Edit, Clock } from "lucide-react";
+import { Plus, Trash2, Edit, Clock, Link2, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 // ID temporário para desenvolvimento (substituir por user.id depois)
@@ -119,6 +119,20 @@ const ServiceTypes = () => {
           setFormData({ name: "", duration_minutes: 30, description: "" });
           setEditingType(null);
           setShowForm(false);
+     };
+
+     const handleCopyLink = (serviceTypeId: string, serviceName: string) => {
+          const baseUrl = window.location.origin;
+          const bookingUrl = `${baseUrl}/agendar?tipo=${serviceTypeId}`;
+
+          navigator.clipboard
+               .writeText(bookingUrl)
+               .then(() => {
+                    toast.success(`Link copiado para ${serviceName}!`);
+               })
+               .catch(() => {
+                    toast.error("Erro ao copiar link");
+               });
      };
 
      return (
@@ -268,7 +282,7 @@ const ServiceTypes = () => {
                                    <Card key={type.id}>
                                         <CardHeader className="pb-3">
                                              <div className="flex items-start justify-between">
-                                                  <div>
+                                                  <div className="flex-1">
                                                        <CardTitle className="text-lg">
                                                             {type.name}
                                                        </CardTitle>
@@ -306,13 +320,27 @@ const ServiceTypes = () => {
                                                   </div>
                                              </div>
                                         </CardHeader>
-                                        {type.description && (
-                                             <CardContent className="pt-0">
+                                        <CardContent className="pt-0 space-y-3">
+                                             {type.description && (
                                                   <p className="text-sm text-muted-foreground">
                                                        {type.description}
                                                   </p>
-                                             </CardContent>
-                                        )}
+                                             )}
+                                             <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                  className="w-full"
+                                                  onClick={() =>
+                                                       handleCopyLink(
+                                                            type.id,
+                                                            type.name
+                                                       )
+                                                  }
+                                             >
+                                                  <Copy className="w-3 h-3 mr-2" />
+                                                  Copiar Link de Agendamento
+                                             </Button>
+                                        </CardContent>
                                    </Card>
                               ))}
                          </div>

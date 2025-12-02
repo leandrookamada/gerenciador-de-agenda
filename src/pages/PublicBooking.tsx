@@ -156,21 +156,10 @@ const PublicBooking = () => {
                     time: timeFormatted,
                });
 
-               toast.success("Agendamento realizado com sucesso!", {
-                    action: {
-                         label: "Abrir WhatsApp",
-                         onClick: () =>
-                              openWhatsApp(
-                                   formData.patientPhone,
-                                   clientMessage
-                              ),
-                    },
-                    duration: 10000,
-               });
-
-               // 5. Notificar o profissional
+               // 5. Notificar APENAS o profissional via WhatsApp
                const professionalPhone =
                     localStorage.getItem("professional_phone");
+
                if (professionalPhone) {
                     const professionalMessage =
                          getProfessionalNotificationMessage({
@@ -181,16 +170,24 @@ const PublicBooking = () => {
                               time: timeFormatted,
                          });
 
-                    // Abrir WhatsApp do profissional em outra aba
+                    // Abrir WhatsApp do PROFISSIONAL para ele ver a notificação
                     setTimeout(() => {
                          openWhatsApp(professionalPhone, professionalMessage);
-                    }, 2000);
-               }
+                    }, 500);
 
-               // 6. Abrir WhatsApp do cliente com confirmação
-               setTimeout(() => {
-                    openWhatsApp(formData.patientPhone, clientMessage);
-               }, 1000);
+                    toast.success(
+                         "Agendamento realizado! O profissional será notificado via WhatsApp.",
+                         {
+                              duration: 5000,
+                         }
+                    );
+               } else {
+                    toast.success("Agendamento realizado com sucesso!", {
+                         description:
+                              "O profissional entrará em contato para confirmar.",
+                         duration: 5000,
+                    });
+               }
 
                // Resetar formulário
                setFormData({

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+     <head>
+          <meta charset="UTF-8" />
+          <meta
+               name="viewport"
+               content="width=device-width, initial-scale=1.0"
+          />
+          <title>Diagnóstico - Sistema de Agendamento</title>
+          <style>
+               body {
+                    font-family: system-ui, -apple-system, sans-serif;
+                    max-width: 800px;
+                    margin: 40px auto;
+                    padding: 20px;
+                    background: #f5f5f5;
+               }
+               .card {
+                    background: white;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin-bottom: 20px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+               }
+               .status {
+                    display: inline-block;
+                    padding: 4px 12px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    margin-left: 10px;
+               }
+               .ok {
+                    background: #d4edda;
+                    color: #155724;
+               }
+               .error {
+                    background: #f8d7da;
+                    color: #721c24;
+               }
+               .warning {
+                    background: #fff3cd;
+                    color: #856404;
+               }
+               h1 {
+                    color: #333;
+               }
+               h2 {
+                    color: #666;
+                    margin-top: 0;
+               }
+               pre {
+                    background: #f8f9fa;
+                    padding: 10px;
+                    border-radius: 4px;
+                    overflow-x: auto;
+               }
+               .loading {
+                    text-align: center;
+                    padding: 40px;
+               }
+          </style>
+     </head>
+     <body>
+          <div class="card">
+               <h1>🔍 Diagnóstico do Sistema</h1>
+               <p>Verificando configurações e conexões...</p>
+          </div>
+
+          <div id="results" class="loading">
+               <div>⏳ Carregando...</div>
+          </div>
+
+          <script type="module">
+               const results = [];
+
+               function addResult(title, status, message, details) {
+                    results.push({ title, status, message, details });
+               }
+
+               function renderResults() {
+                    const container = document.getElementById("results");
+                    container.innerHTML = results
+                         .map(
+                              (r) => `
+                <div class="card">
+                    <h2>
+                        ${r.title}
+                        <span class="status ${r.status}">${
+                                   r.status === "ok"
+                                        ? "✓ OK"
+                                        : r.status === "error"
+                                        ? "✗ ERRO"
+                                        : "⚠ AVISO"
+                              }</span>
+                    </h2>
+                    <p>${r.message}</p>
+                    ${r.details ? `<pre>${r.details}</pre>` : ""}
+                </div>
+            `
+                         )
+                         .join("");
+               }
+
+               // 1. Verificar variáveis de ambiente
+               const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+               const supabaseKey = import.meta.env
+                    .VITE_SUPABASE_PUBLISHABLE_KEY;
+
+               if (!supabaseUrl || !supabaseKey) {
+                    addResult(
+                         "1. Variáveis de Ambiente",
+                         "error",
+                         "Variáveis de ambiente NÃO encontradas!",
+                         `VITE_SUPABASE_URL: ${
+                              supabaseUrl || "undefined"
+                         }\nVITE_SUPABASE_PUBLISHABLE_KEY: ${
+                              supabaseKey ? "definida" : "undefined"
+                         }`
+                    );
+               } else {
+                    addResult(
+                         "1. Variáveis de Ambiente",
+                         "ok",
+                         "Variáveis de ambiente configuradas corretamente",
+                         `URL: ${supabaseUrl}\nKey: ${supabaseKey.substring(
+                              0,
+                              20
+                         )}...`
+                    );
+               }
+
+               // 2. Verificar conexão com Supabase
+               try {
+                    const { createClient } = await import(
+                         "@supabase/supabase-js"
+                    );
+                    const supabase = createClient(supabaseUrl, supabaseKey);
+
+                    try {
+                         const { data, error } = await supabase
+                              .from("service_types")
+                              .select("count");
+
+                         if (error) {
+                              if (
+                                   error.message.includes("relation") ||
+                                   error.message.includes("does not exist")
+                              ) {
+                                   addResult(
+                                        "2. Banco de Dados",
+                                        "error",
+                                        "Tabelas NÃO encontradas no Supabase",
+                                        "A migration SQL ainda não foi executada.\nVá no Supabase Dashboard > SQL Editor e execute o arquivo:\nsupabase/migrations/20251202000000_complete_booking_system.sql"
+                                   );
+                              } else {
+                                   addResult(
+                                        "2. Banco de Dados",
+                                        "error",
+                                        "Erro ao conectar com banco de dados",
+                                        error.message
+                                   );
+                              }
+                         } else {
+                              addResult(
+                                   "2. Banco de Dados",
+                                   "ok",
+                                   "Conexão com Supabase OK! Tabelas existem.",
+                                   "Banco de dados configurado corretamente"
+                              );
+                         }
+                    } catch (err) {
+                         addResult(
+                              "2. Banco de Dados",
+                              "error",
+                              "Erro ao verificar tabelas",
+                              err.message
+                         );
+                    }
+               } catch (err) {
+                    addResult(
+                         "2. Banco de Dados",
+                         "error",
+                         "Erro ao importar Supabase client",
+                         err.message
+                    );
+               }
+
+               // 3. Verificar React Router
+               try {
+                    await import("react-router-dom");
+                    addResult(
+                         "3. React Router",
+                         "ok",
+                         "React Router carregado com sucesso",
+                         null
+                    );
+               } catch (err) {
+                    addResult(
+                         "3. React Router",
+                         "error",
+                         "Erro ao carregar React Router",
+                         err.message
+                    );
+               }
+
+               // 4. Testar rota principal
+               try {
+                    const response = await fetch("/");
+                    if (response.ok) {
+                         addResult(
+                              "4. Aplicação Principal",
+                              "ok",
+                              "Aplicação respondendo corretamente",
+                              `Status: ${response.status} ${response.statusText}`
+                         );
+                    } else {
+                         addResult(
+                              "4. Aplicação Principal",
+                              "warning",
+                              "Aplicação respondeu com status não OK",
+                              `Status: ${response.status} ${response.statusText}`
+                         );
+                    }
+               } catch (err) {
+                    addResult(
+                         "4. Aplicação Principal",
+                         "error",
+                         "Erro ao acessar aplicação",
+                         err.message
+                    );
+               }
+
+               renderResults();
+
+               // Adicionar botão de ação
+               const container = document.getElementById("results");
+               container.innerHTML += `
+            <div class="card">
+                <h2>🚀 Próximos Passos</h2>
+                <p>Se encontrou erros acima, siga as instruções específicas.</p>
+                <p>Se tudo está OK, <a href="/" style="color: #0066cc; font-weight: bold;">clique aqui para ir ao Dashboard</a></p>
+            </div>
+        `;
+          </script>
+     </body>
+</html>

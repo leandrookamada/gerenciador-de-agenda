@@ -21,6 +21,8 @@ import {
      SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
      Calendar,
      Clock,
@@ -31,11 +33,14 @@ import {
      CheckCircle,
      AlertCircle,
      MessageCircle,
+     CalendarDays,
+     List,
 } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, isSameDay, startOfDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { openWhatsApp } from "@/lib/whatsapp";
+import { formatDateLocal, parseDateLocal } from "@/lib/dateUtils";
 
 const TEMP_PROFESSIONAL_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -61,6 +66,8 @@ const Bookings = () => {
      const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
      const [loading, setLoading] = useState(true);
      const [statusFilter, setStatusFilter] = useState<string>("all");
+     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+     const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
 
      useEffect(() => {
           loadBookings();
@@ -121,6 +128,152 @@ const Bookings = () => {
                (b.time_slot?.slot_date &&
                     new Date(b.time_slot.slot_date) < new Date())
      );
+
+     // Agrupar agendamentos por dia
+     const bookingsByDate = bookings.reduce((acc, booking) => {
+          if (booking.time_slot?.slot_date) {
+               const date = booking.time_slot.slot_date;
+               if (!acc[date]) {
+                    acc[date] = [];
+               }
+               acc[date].push(booking);
+          }
+          return acc;
+     }, {} as Record<string, BookingWithDetails[]>);
+
+     // Ordenar agendamentos de cada dia por horário
+     Object.keys(bookingsByDate).forEach((date) => {
+          bookingsByDate[date].sort((a, b) => {
+               const timeA = a.time_slot?.start_time || "";
+               const timeB = b.time_slot?.start_time || "";
+               return timeA.localeCompare(timeB);
+          });
+     });
+
+     // Filtrar agendamentos do dia selecionado
+     const selectedDateStr = formatDateLocal(selectedDate);
+     const bookingsOnSelectedDate = bookingsByDate[selectedDateStr] || [];
+
+     // Obter datas com agendamentos para destacar no calendário
+     const datesWithBookings = Object.keys(bookingsByDate).map((date) =>
+          parseDateLocal(date)
+     );
+
+     // Renderizar um card de agendamento
+     const renderBookingCard = (
+          booking: BookingWithDetails,
+          showDate = false
+     ) => {
+          const status = statusMap[booking.status];
+          const StatusIcon = status.icon;
+
+          return (
+               <Card
+                    key={booking.id}
+                    className="hover:shadow-md transition-shadow"
+               >
+                    <CardHeader className="pb-3">
+                         <div className="flex items-start justify-between">
+                              <div className="space-y-1 flex-1">
+                                   <CardTitle className="flex items-center gap-2 text-lg">
+                                        <User className="w-5 h-5" />
+                                        {booking.patient_name}
+                                   </CardTitle>
+                                   <CardDescription className="flex flex-wrap items-center gap-3">
+                                        {showDate && booking.time_slot && (
+                                             <span className="flex items-center gap-1">
+                                                  <Calendar className="w-4 h-4" />
+                                                  {format(
+                                                       parseDateLocal(
+                                                            booking.time_slot
+                                                                 .slot_date
+                                                       ),
+                                                       "dd/MM/yyyy",
+                                                       { locale: ptBR }
+                                                  )}
+                                             </span>
+                                        )}
+                                        {booking.time_slot && (
+                                             <span className="flex items-center gap-1 font-semibold text-primary">
+                                                  <Clock className="w-4 h-4" />
+                                                  {booking.time_slot.start_time.substring(
+                                                       0,
+                                                       5
+                                                  )}
+                                             </span>
+                                        )}
+                                        {booking.service_type && (
+                                             <span className="text-xs">
+                                                  {booking.service_type.name}
+                                             </span>
+                                        )}
+                                   </CardDescription>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                   <Badge
+                                        className={status.color}
+                                        variant="secondary"
+                                   >
+                                        <StatusIcon className="w-3 h-3 mr-1" />
+                                        {status.label}
+                                   </Badge>
+                              </div>
+                         </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                         <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-sm">
+                                   <Phone className="w-4 h-4 text-muted-foreground" />
+                                   <span>{booking.patient_phone}</span>
+                              </div>
+                              {booking.patient_email && (
+                                   <div className="flex items-center gap-2 text-sm">
+                                        <Mail className="w-4 h-4 text-muted-foreground" />
+                                        <span>{booking.patient_email}</span>
+                                   </div>
+                              )}
+                              {booking.notes && (
+                                   <div className="text-sm text-muted-foreground pt-2 border-t">
+                                        <span className="font-medium">
+                                             Obs:
+                                        </span>{" "}
+                                        {booking.notes}
+                                   </div>
+                              )}
+                              <div className="flex gap-2 pt-2">
+                                   <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                             handleSendWhatsApp(booking)
+                                        }
+                                        className="gap-2"
+                                   >
+                                        <MessageCircle className="w-4 h-4" />
+                                        WhatsApp
+                                   </Button>
+                                   {booking.status === "confirmed" && (
+                                        <Button
+                                             variant="outline"
+                                             size="sm"
+                                             onClick={() =>
+                                                  handleCancelBooking(
+                                                       booking.id,
+                                                       booking.patient_name
+                                                  )
+                                             }
+                                             className="gap-2 text-destructive hover:text-destructive"
+                                        >
+                                             <X className="w-4 h-4" />
+                                             Cancelar
+                                        </Button>
+                                   )}
+                              </div>
+                         </div>
+                    </CardContent>
+               </Card>
+          );
+     };
 
      return (
           <DashboardLayout>
@@ -206,181 +359,172 @@ const Bookings = () => {
                          </Card>
                     </div>
 
-                    {/* Lista de agendamentos */}
-                    {loading ? (
-                         <Card>
-                              <CardContent className="py-12 text-center">
-                                   <p className="text-muted-foreground">
-                                        Carregando agendamentos...
-                                   </p>
-                              </CardContent>
-                         </Card>
-                    ) : bookings.length === 0 ? (
-                         <Card>
-                              <CardContent className="py-12 text-center">
-                                   <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                   <h3 className="text-lg font-semibold mb-2">
-                                        Nenhum agendamento encontrado
-                                   </h3>
-                                   <p className="text-sm text-muted-foreground">
-                                        Quando clientes agendarem horários, eles
-                                        aparecerão aqui
-                                   </p>
-                              </CardContent>
-                         </Card>
-                    ) : (
-                         <div className="space-y-4">
-                              {bookings.map((booking) => {
-                                   const status = statusMap[booking.status];
-                                   const StatusIcon = status.icon;
+                    {/* Tabs para alternar entre visualizações */}
+                    <Tabs
+                         value={viewMode}
+                         onValueChange={(v) =>
+                              setViewMode(v as "calendar" | "list")
+                         }
+                    >
+                         <TabsList>
+                              <TabsTrigger value="calendar" className="gap-2">
+                                   <CalendarDays className="w-4 h-4" />
+                                   Por Dia
+                              </TabsTrigger>
+                              <TabsTrigger value="list" className="gap-2">
+                                   <List className="w-4 h-4" />
+                                   Lista Completa
+                              </TabsTrigger>
+                         </TabsList>
 
-                                   return (
-                                        <Card key={booking.id}>
+                         {/* Visualização por Calendário/Dia */}
+                         <TabsContent value="calendar" className="space-y-4">
+                              {loading ? (
+                                   <Card>
+                                        <CardContent className="py-12 text-center">
+                                             <p className="text-muted-foreground">
+                                                  Carregando agendamentos...
+                                             </p>
+                                        </CardContent>
+                                   </Card>
+                              ) : bookings.length === 0 ? (
+                                   <Card>
+                                        <CardContent className="py-12 text-center">
+                                             <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                             <h3 className="text-lg font-semibold mb-2">
+                                                  Nenhum agendamento encontrado
+                                             </h3>
+                                             <p className="text-sm text-muted-foreground">
+                                                  Quando clientes agendarem
+                                                  horários, eles aparecerão aqui
+                                             </p>
+                                        </CardContent>
+                                   </Card>
+                              ) : (
+                                   <div className="grid md:grid-cols-[350px_1fr] gap-6">
+                                        {/* Calendário */}
+                                        <Card>
                                              <CardHeader>
-                                                  <div className="flex items-start justify-between">
-                                                       <div className="space-y-1">
-                                                            <CardTitle className="flex items-center gap-2">
-                                                                 <User className="w-5 h-5" />
-                                                                 {
-                                                                      booking.patient_name
-                                                                 }
-                                                            </CardTitle>
-                                                            <CardDescription className="flex items-center gap-4">
-                                                                 {booking.time_slot && (
-                                                                      <>
-                                                                           <span className="flex items-center gap-1">
-                                                                                <Calendar className="w-4 h-4" />
-                                                                                {format(
-                                                                                     new Date(
-                                                                                          booking.time_slot.slot_date
-                                                                                     ),
-                                                                                     "dd/MM/yyyy",
-                                                                                     {
-                                                                                          locale: ptBR,
-                                                                                     }
-                                                                                )}
-                                                                           </span>
-                                                                           <span className="flex items-center gap-1">
-                                                                                <Clock className="w-4 h-4" />
-                                                                                {booking.time_slot.start_time.substring(
-                                                                                     0,
-                                                                                     5
-                                                                                )}
-                                                                           </span>
-                                                                      </>
-                                                                 )}
-                                                            </CardDescription>
-                                                       </div>
-                                                       <div className="flex items-center gap-2">
-                                                            <Badge
-                                                                 className={
-                                                                      status.color
-                                                                 }
-                                                                 variant="secondary"
-                                                            >
-                                                                 <StatusIcon className="w-3 h-3 mr-1" />
-                                                                 {status.label}
-                                                            </Badge>
-                                                            <Button
-                                                                 variant="ghost"
-                                                                 size="sm"
-                                                                 onClick={() =>
-                                                                      handleSendWhatsApp(
-                                                                           booking
-                                                                      )
-                                                                 }
-                                                                 title="Enviar WhatsApp"
-                                                            >
-                                                                 <MessageCircle className="w-4 h-4" />
-                                                            </Button>
-                                                            {booking.status ===
-                                                                 "confirmed" && (
-                                                                 <Button
-                                                                      variant="ghost"
-                                                                      size="sm"
-                                                                      onClick={() =>
-                                                                           handleCancelBooking(
-                                                                                booking.id,
-                                                                                booking.patient_name
-                                                                           )
-                                                                      }
-                                                                      title="Cancelar agendamento"
-                                                                 >
-                                                                      <X className="w-4 h-4" />
-                                                                 </Button>
-                                                            )}
-                                                       </div>
-                                                  </div>
+                                                  <CardTitle className="text-lg">
+                                                       Selecione um dia
+                                                  </CardTitle>
+                                                  <CardDescription>
+                                                       Dias com agendamentos
+                                                       estão destacados
+                                                  </CardDescription>
                                              </CardHeader>
                                              <CardContent>
-                                                  <div className="grid gap-3 md:grid-cols-2">
-                                                       <div className="space-y-2">
-                                                            {booking.service_type && (
-                                                                 <div className="flex items-center gap-2 text-sm">
-                                                                      <Clock className="w-4 h-4 text-muted-foreground" />
-                                                                      <span className="font-medium">
-                                                                           Serviço:
-                                                                      </span>
-                                                                      <span>
-                                                                           {
-                                                                                booking
-                                                                                     .service_type
-                                                                                     .name
-                                                                           }{" "}
-                                                                           (
-                                                                           {
-                                                                                booking
-                                                                                     .service_type
-                                                                                     .duration_minutes
-                                                                           }{" "}
-                                                                           min)
-                                                                      </span>
-                                                                 </div>
-                                                            )}
-                                                            <div className="flex items-center gap-2 text-sm">
-                                                                 <Phone className="w-4 h-4 text-muted-foreground" />
-                                                                 <span className="font-medium">
-                                                                      Telefone:
-                                                                 </span>
-                                                                 <span>
-                                                                      {
-                                                                           booking.patient_phone
-                                                                      }
-                                                                 </span>
-                                                            </div>
-                                                            {booking.patient_email && (
-                                                                 <div className="flex items-center gap-2 text-sm">
-                                                                      <Mail className="w-4 h-4 text-muted-foreground" />
-                                                                      <span className="font-medium">
-                                                                           E-mail:
-                                                                      </span>
-                                                                      <span>
-                                                                           {
-                                                                                booking.patient_email
-                                                                           }
-                                                                      </span>
-                                                                 </div>
-                                                            )}
-                                                       </div>
-                                                       {booking.notes && (
-                                                            <div className="space-y-1">
-                                                                 <p className="text-sm font-medium">
-                                                                      Observações:
-                                                                 </p>
-                                                                 <p className="text-sm text-muted-foreground">
-                                                                      {
-                                                                           booking.notes
-                                                                      }
-                                                                 </p>
-                                                            </div>
-                                                       )}
-                                                  </div>
+                                                  <CalendarComponent
+                                                       mode="single"
+                                                       selected={selectedDate}
+                                                       onSelect={(date) =>
+                                                            date &&
+                                                            setSelectedDate(
+                                                                 date
+                                                            )
+                                                       }
+                                                       locale={ptBR}
+                                                       className="rounded-md border"
+                                                       modifiers={{
+                                                            booked: datesWithBookings,
+                                                       }}
+                                                       modifiersStyles={{
+                                                            booked: {
+                                                                 fontWeight:
+                                                                      "bold",
+                                                                 textDecoration:
+                                                                      "underline",
+                                                            },
+                                                       }}
+                                                  />
                                              </CardContent>
                                         </Card>
-                                   );
-                              })}
-                         </div>
-                    )}
+
+                                        {/* Agendamentos do dia selecionado */}
+                                        <div>
+                                             <Card>
+                                                  <CardHeader>
+                                                       <CardTitle className="flex items-center gap-2">
+                                                            <Calendar className="w-5 h-5" />
+                                                            {format(
+                                                                 selectedDate,
+                                                                 "EEEE, dd 'de' MMMM 'de' yyyy",
+                                                                 {
+                                                                      locale: ptBR,
+                                                                 }
+                                                            )}
+                                                       </CardTitle>
+                                                       <CardDescription>
+                                                            {bookingsOnSelectedDate.length ===
+                                                            0
+                                                                 ? "Nenhum agendamento neste dia"
+                                                                 : `${bookingsOnSelectedDate.length} agendamento(s)`}
+                                                       </CardDescription>
+                                                  </CardHeader>
+                                                  <CardContent>
+                                                       {bookingsOnSelectedDate.length ===
+                                                       0 ? (
+                                                            <div className="text-center py-8">
+                                                                 <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                                                 <p className="text-muted-foreground">
+                                                                      Nenhum
+                                                                      agendamento
+                                                                      para este
+                                                                      dia
+                                                                 </p>
+                                                            </div>
+                                                       ) : (
+                                                            <div className="space-y-3">
+                                                                 {bookingsOnSelectedDate.map(
+                                                                      (
+                                                                           booking
+                                                                      ) =>
+                                                                           renderBookingCard(
+                                                                                booking,
+                                                                                false
+                                                                           )
+                                                                 )}
+                                                            </div>
+                                                       )}
+                                                  </CardContent>
+                                             </Card>
+                                        </div>
+                                   </div>
+                              )}
+                         </TabsContent>
+
+                         {/* Visualização em Lista */}
+                         <TabsContent value="list" className="space-y-4">
+                              {loading ? (
+                                   <Card>
+                                        <CardContent className="py-12 text-center">
+                                             <p className="text-muted-foreground">
+                                                  Carregando agendamentos...
+                                             </p>
+                                        </CardContent>
+                                   </Card>
+                              ) : bookings.length === 0 ? (
+                                   <Card>
+                                        <CardContent className="py-12 text-center">
+                                             <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                             <h3 className="text-lg font-semibold mb-2">
+                                                  Nenhum agendamento encontrado
+                                             </h3>
+                                             <p className="text-sm text-muted-foreground">
+                                                  Quando clientes agendarem
+                                                  horários, eles aparecerão aqui
+                                             </p>
+                                        </CardContent>
+                                   </Card>
+                              ) : (
+                                   <div className="space-y-4">
+                                        {bookings.map((booking) =>
+                                             renderBookingCard(booking, true)
+                                        )}
+                                   </div>
+                              )}
+                         </TabsContent>
+                    </Tabs>
                </div>
           </DashboardLayout>
      );

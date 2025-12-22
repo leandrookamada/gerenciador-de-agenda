@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import ServiceTypes from "./pages/ServiceTypes";
 import TimeSlotManagement from "./pages/TimeSlotManagement";
 import PublicBooking from "./pages/PublicBooking";
+import MyBookings from "./pages/MyBookings";
 import Bookings from "./pages/Bookings";
 import Settings from "./pages/Settings";
 
@@ -38,6 +39,12 @@ const App = () => (
                          <Route
                               path="/agendar/:professionalId"
                               element={<PublicBooking />}
+                         />
+
+                         {/* Página de gerenciamento de agendamentos do cliente */}
+                         <Route
+                              path="/meus-agendamentos"
+                              element={<MyBookings />}
                          />
 
                          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

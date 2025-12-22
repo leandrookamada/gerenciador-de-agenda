@@ -30,6 +30,7 @@ import { Calendar as CalendarIcon, Clock, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDateLocal } from "@/lib/dateUtils";
 
 // ID temporário para desenvolvimento
 const TEMP_PROFESSIONAL_ID = "00000000-0000-0000-0000-000000000000";
@@ -78,7 +79,7 @@ const TimeSlotManagement = () => {
           if (!selectedDate) return;
 
           try {
-               const dateStr = format(selectedDate, "yyyy-MM-dd");
+               const dateStr = formatDateLocal(selectedDate);
                const data = await listTimeSlotsByDate(
                     TEMP_PROFESSIONAL_ID,
                     dateStr
@@ -104,7 +105,7 @@ const TimeSlotManagement = () => {
           setLoading(true);
 
           try {
-               const dateStr = format(selectedDate, "yyyy-MM-dd");
+               const dateStr = formatDateLocal(selectedDate);
 
                const slotsCreated = await generateTimeSlots(
                     TEMP_PROFESSIONAL_ID,
@@ -137,7 +138,7 @@ const TimeSlotManagement = () => {
                return;
 
           try {
-               const dateStr = format(selectedDate, "yyyy-MM-dd");
+               const dateStr = formatDateLocal(selectedDate);
                await deleteTimeSlotsByDate(TEMP_PROFESSIONAL_ID, dateStr);
                toast.success("Horários excluídos!");
                loadSlots();

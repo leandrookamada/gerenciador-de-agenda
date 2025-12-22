@@ -304,3 +304,128 @@ export async function cancelBooking(bookingId: string) {
 
      return booking as Booking;
 }
+
+// ===== CLIENTS =====
+export type Client = {
+     id: string;
+     email: string;
+     name: string;
+     phone: string | null;
+     created_at: string;
+     updated_at: string;
+};
+
+export type ClientInsert = {
+     email: string;
+     name: string;
+     phone?: string | null;
+};
+
+export async function findClientByEmail(email: string) {
+     const resp = await (supabase as any)
+          .from("clients")
+          .select("*")
+          .eq("email", email)
+          .single();
+     const { data, error } = resp as { data: Client | null; error: any };
+     if (error && error.code !== "PGRST116") throw error; // PGRST116 = not found
+     return data;
+}
+
+export async function createClient(payload: ClientInsert) {
+     const resp = await (supabase as any)
+          .from("clients")
+          .insert(payload)
+          .select()
+          .single();
+     const { data, error } = resp as { data: Client | null; error: any };
+     if (error) throw error;
+     return data as Client;
+}
+
+export async function createOrUpdateClient(
+     payload: ClientInsert
+): Promise<Client> {
+     // Tentar encontrar cliente existente
+     const existing = await findClientByEmail(payload.email);
+
+     if (existing) {
+          // Atualizar nome e telefone se fornecidos
+          const updates: Partial<ClientInsert> = {};
+          if (payload.name) updates.name = payload.name;
+          if (payload.phone) updates.phone = payload.phone;
+
+          if (Object.keys(updates).length > 0) {
+               const resp = await (supabase as any)
+                    .from("clients")
+                    .update(updates)
+                    .eq("id", existing.id)
+                    .select()
+                    .single();
+               const { data, error } = resp as {
+                    data: Client | null;
+                    error: any;
+               };
+               if (error) throw error;
+               return data as Client;
+          }
+          return existing;
+     }
+
+     // Criar novo cliente
+     return createClient(payload);
+}
+
+export async function listClientBookings(clientId: string) {
+     const resp = await (supabase as any)
+          .from("bookings")
+          .select(
+               `
+               *,
+               service_type:service_types(*),
+               time_slot:time_slots(*)
+          `
+          )
+          .eq("client_id", clientId)
+          .order("created_at", { ascending: false });
+     const { data, error } = resp as {
+          data: BookingWithDetails[] | null;
+          error: any;
+     };
+     if (error) throw error;
+     return data ?? [];
+}
+
+export async function updateBookingTimeSlot(
+     bookingId: string,
+     newTimeSlotId: string
+) {
+     // 1. Obter o booking atual
+     const { data: currentBooking, error: fetchError } = await (supabase as any)
+          .from("bookings")
+          .select("*")
+          .eq("id", bookingId)
+          .single();
+
+     if (fetchError) throw fetchError;
+
+     // 2. Liberar o slot antigo
+     if (currentBooking.time_slot_id) {
+          await markSlotAsAvailable(currentBooking.time_slot_id);
+     }
+
+     // 3. Marcar o novo slot como ocupado
+     await markSlotAsBooked(newTimeSlotId);
+
+     // 4. Atualizar o booking
+     const resp = await (supabase as any)
+          .from("bookings")
+          .update({ time_slot_id: newTimeSlotId })
+          .eq("id", bookingId)
+          .select()
+          .single();
+
+     const { data, error } = resp as { data: Booking | null; error: any };
+     if (error) throw error;
+     return data as Booking;
+}

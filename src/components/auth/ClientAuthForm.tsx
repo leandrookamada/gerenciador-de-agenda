@@ -59,13 +59,35 @@ export default function ClientAuthForm({
                     phone: formData.phone.trim() || null,
                });
 
+               if (!client) {
+                    throw new Error("Falha ao criar cliente");
+               }
+
                toast.success(
                     "Bem-vindo(a)! Agora você pode fazer seu agendamento."
                );
                onSuccess(client);
-          } catch (error) {
+          } catch (error: any) {
                console.error("Erro ao criar/atualizar cliente:", error);
-               toast.error("Erro ao processar seus dados. Tente novamente.");
+
+               // Mensagens de erro mais específicas
+               let errorMessage =
+                    "Erro ao processar seus dados. Tente novamente.";
+
+               if (error?.message?.includes("duplicate key")) {
+                    errorMessage =
+                         "Este email já está em uso. Tente fazer login.";
+               } else if (error?.message?.includes("clients")) {
+                    errorMessage =
+                         "Erro no banco de dados. Por favor, contate o suporte.";
+               } else if (error?.code === "PGRST301") {
+                    errorMessage =
+                         "Erro de permissão. Verifique as configurações do banco.";
+               } else if (error?.message) {
+                    errorMessage = error.message;
+               }
+
+               toast.error(errorMessage);
           } finally {
                setLoading(false);
           }

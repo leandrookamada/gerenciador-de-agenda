@@ -322,58 +322,83 @@ export type ClientInsert = {
 };
 
 export async function findClientByEmail(email: string) {
-     const resp = await (supabase as any)
-          .from("clients")
-          .select("*")
-          .eq("email", email)
-          .single();
-     const { data, error } = resp as { data: Client | null; error: any };
-     if (error && error.code !== "PGRST116") throw error; // PGRST116 = not found
-     return data;
+     try {
+          const resp = await (supabase as any)
+               .from("clients")
+               .select("*")
+               .eq("email", email)
+               .single();
+          const { data, error } = resp as { data: Client | null; error: any };
+          if (error && error.code !== "PGRST116") {
+               console.error("Erro ao buscar cliente:", error);
+               throw error;
+          }
+          return data;
+     } catch (error: any) {
+          if (error.code === "PGRST116") return null; // Not found
+          console.error("Erro ao buscar cliente por email:", error);
+          throw error;
+     }
 }
 
 export async function createClient(payload: ClientInsert) {
-     const resp = await (supabase as any)
-          .from("clients")
-          .insert(payload)
-          .select()
-          .single();
-     const { data, error } = resp as { data: Client | null; error: any };
-     if (error) throw error;
-     return data as Client;
+     try {
+          const resp = await (supabase as any)
+               .from("clients")
+               .insert(payload)
+               .select()
+               .single();
+          const { data, error } = resp as { data: Client | null; error: any };
+          if (error) {
+               console.error("Erro ao criar cliente:", error);
+               throw error;
+          }
+          return data as Client;
+     } catch (error) {
+          console.error("Erro em createClient:", error);
+          throw error;
+     }
 }
 
 export async function createOrUpdateClient(
      payload: ClientInsert
 ): Promise<Client> {
-     // Tentar encontrar cliente existente
-     const existing = await findClientByEmail(payload.email);
+     try {
+          // Tentar encontrar cliente existente
+          const existing = await findClientByEmail(payload.email);
 
-     if (existing) {
-          // Atualizar nome e telefone se fornecidos
-          const updates: Partial<ClientInsert> = {};
-          if (payload.name) updates.name = payload.name;
-          if (payload.phone) updates.phone = payload.phone;
+          if (existing) {
+               // Atualizar nome e telefone se fornecidos
+               const updates: Partial<ClientInsert> = {};
+               if (payload.name) updates.name = payload.name;
+               if (payload.phone) updates.phone = payload.phone;
 
-          if (Object.keys(updates).length > 0) {
-               const resp = await (supabase as any)
-                    .from("clients")
-                    .update(updates)
-                    .eq("id", existing.id)
-                    .select()
-                    .single();
-               const { data, error } = resp as {
-                    data: Client | null;
-                    error: any;
-               };
-               if (error) throw error;
-               return data as Client;
+               if (Object.keys(updates).length > 0) {
+                    const resp = await (supabase as any)
+                         .from("clients")
+                         .update(updates)
+                         .eq("id", existing.id)
+                         .select()
+                         .single();
+                    const { data, error } = resp as {
+                         data: Client | null;
+                         error: any;
+                    };
+                    if (error) {
+                         console.error("Erro ao atualizar cliente:", error);
+                         throw error;
+                    }
+                    return data as Client;
+               }
+               return existing;
           }
-          return existing;
-     }
 
-     // Criar novo cliente
-     return createClient(payload);
+          // Criar novo cliente
+          return createClient(payload);
+     } catch (error) {
+          console.error("Erro em createOrUpdateClient:", error);
+          throw error;
+     }
 }
 
 export async function listClientBookings(clientId: string) {
@@ -394,6 +419,37 @@ export async function listClientBookings(clientId: string) {
      };
      if (error) throw error;
      return data ?? [];
+}
+
+export type BookingInsert = {
+     professional_id: string;
+     service_type_id: string;
+     time_slot_id: string;
+     client_id?: string;
+     patient_name: string;
+     patient_phone: string;
+     patient_email?: string | null;
+     notes?: string | null;
+     status: "confirmed" | "cancelled" | "completed";
+};
+
+export async function createBooking(payload: BookingInsert) {
+     try {
+          const resp = await (supabase as any)
+               .from("bookings")
+               .insert(payload)
+               .select()
+               .single();
+          const { data, error } = resp as { data: Booking | null; error: any };
+          if (error) {
+               console.error("Erro ao criar agendamento:", error);
+               throw error;
+          }
+          return data as Booking;
+     } catch (error) {
+          console.error("Erro em createBooking:", error);
+          throw error;
+     }
 }
 
 export async function updateBookingTimeSlot(

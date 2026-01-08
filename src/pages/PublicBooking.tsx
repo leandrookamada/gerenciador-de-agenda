@@ -4,10 +4,10 @@ import {
      listActiveServiceTypes,
      listAvailableSlots,
      markSlotAsBooked,
+     createBooking,
      ServiceType,
      TimeSlot,
 } from "@/integrations/supabase/scheduling";
-import { supabase } from "@/integrations/supabase/client";
 import { useClientAuth } from "@/hooks/useClientAuth";
 import ClientAuthForm from "@/components/auth/ClientAuthForm";
 import { Button } from "@/components/ui/button";
@@ -125,22 +125,18 @@ const PublicBooking = () => {
                // 1. Marcar slot como ocupado
                await markSlotAsBooked(selectedSlot.id);
 
-               // 2. Criar agendamento
-               const { error } = await (supabase as any)
-                    .from("bookings")
-                    .insert({
-                         professional_id: profId,
-                         service_type_id: selectedServiceType,
-                         time_slot_id: selectedSlot.id,
-                         client_id: client.id,
-                         patient_name: client.name,
-                         patient_phone: formData.patientPhone || client.phone,
-                         patient_email: client.email,
-                         notes: formData.notes || null,
-                         status: "confirmed",
-                    });
-
-               if (error) throw error;
+               // 2. Criar agendamento usando a função do scheduling.ts
+               await createBooking({
+                    professional_id: profId,
+                    service_type_id: selectedServiceType,
+                    time_slot_id: selectedSlot.id,
+                    client_id: client.id,
+                    patient_name: client.name,
+                    patient_phone: formData.patientPhone || client.phone || "",
+                    patient_email: client.email,
+                    notes: formData.notes || null,
+                    status: "confirmed",
+               });
 
                // 3. Preparar dados para mensagens WhatsApp
                const selectedType = serviceTypes.find(

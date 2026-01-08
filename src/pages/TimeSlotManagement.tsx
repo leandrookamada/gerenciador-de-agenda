@@ -30,14 +30,14 @@ import { Calendar as CalendarIcon, Clock, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { formatDateLocal } from "@/lib/dateUtils";
+import { formatDateLocal, normalizeToLocalDate } from "@/lib/dateUtils";
 
 // ID temporário para desenvolvimento
 const TEMP_PROFESSIONAL_ID = "00000000-0000-0000-0000-000000000000";
 
 const TimeSlotManagement = () => {
      const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-          new Date()
+          normalizeToLocalDate(new Date())
      );
      const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
      const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -178,7 +178,17 @@ const TimeSlotManagement = () => {
                                    <Calendar
                                         mode="single"
                                         selected={selectedDate}
-                                        onSelect={setSelectedDate}
+                                        onSelect={(date) => {
+                                             if (date) {
+                                                  setSelectedDate(
+                                                       normalizeToLocalDate(
+                                                            date
+                                                       )
+                                                  );
+                                             } else {
+                                                  setSelectedDate(undefined);
+                                             }
+                                        }}
                                         locale={ptBR}
                                         className="rounded-md border"
                                    />

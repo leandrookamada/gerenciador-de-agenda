@@ -25,6 +25,16 @@ export function parseDateLocal(dateStr: string): Date {
 }
 
 /**
+ * Normaliza uma data para meia-noite local (00:00:00)
+ * Útil para comparações e para evitar problemas de timezone
+ * @param date Data a ser normalizada
+ * @returns Nova data às 00:00:00 local
+ */
+export function normalizeToLocalDate(date: Date): Date {
+     return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/**
  * Obtém a data atual no formato yyyy-MM-dd sem conversão de timezone
  * @returns String no formato yyyy-MM-dd
  */

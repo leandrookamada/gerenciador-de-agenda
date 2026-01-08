@@ -218,35 +218,42 @@ const PublicBooking = () => {
 
      return (
           <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-success/5">
-               <div className="container mx-auto px-4 py-8 max-w-4xl">
+               <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-5xl">
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-8">
-                         <div className="text-center flex-1">
-                              <h1 className="text-4xl font-bold mb-2">
+                    <div className="flex flex-col sm:flex-row items-center justify-between mb-6 sm:mb-8 gap-4">
+                         <div className="text-center sm:text-left flex-1 w-full sm:w-auto">
+                              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">
                                    Agendar Atendimento
                               </h1>
-                              <p className="text-muted-foreground">
+                              <p className="text-sm sm:text-base text-muted-foreground">
                                    {client
                                         ? `Olá, ${client.name}!`
                                         : "Selecione o tipo de serviço e escolha um horário"}
                               </p>
                          </div>
                          {client && (
-                              <div className="flex gap-2">
+                              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                                    <Button
                                         variant="outline"
                                         onClick={() =>
                                              navigate("/meus-agendamentos")
                                         }
-                                        className="gap-2"
+                                        className="gap-2 w-full sm:w-auto"
+                                        size="sm"
                                    >
                                         <CalendarCheck className="w-4 h-4" />
-                                        Meus Agendamentos
+                                        <span className="hidden sm:inline">
+                                             Meus Agendamentos
+                                        </span>
+                                        <span className="sm:hidden">
+                                             Agendamentos
+                                        </span>
                                    </Button>
                                    <Button
                                         variant="outline"
                                         onClick={logout}
-                                        className="gap-2"
+                                        className="gap-2 w-full sm:w-auto"
+                                        size="sm"
                                    >
                                         <LogOut className="w-4 h-4" />
                                         Sair
@@ -262,36 +269,36 @@ const PublicBooking = () => {
                          <>
                               {/* Seleção de tipo de serviço - oculta se tipo vier da URL */}
                               {!tipoParam && (
-                                   <Card className="mb-6">
-                                        <CardHeader>
-                                             <CardTitle className="flex items-center gap-2">
+                                   <Card className="mb-4 sm:mb-6">
+                                        <CardHeader className="pb-3 sm:pb-6">
+                                             <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                                                   <Clock className="w-5 h-5" />
                                                   Tipo de Serviço
                                              </CardTitle>
-                                             <CardDescription>
+                                             <CardDescription className="text-sm">
                                                   Escolha o tipo de atendimento
                                                   desejado
                                              </CardDescription>
                                         </CardHeader>
                                         <CardContent>
                                              {serviceTypes.length === 0 ? (
-                                                  <p className="text-center text-muted-foreground py-4">
+                                                  <p className="text-center text-muted-foreground py-4 text-sm">
                                                        Nenhum serviço disponível
                                                        no momento
                                                   </p>
                                              ) : (
-                                                  <div className="grid gap-3 md:grid-cols-2">
+                                                  <div className="grid gap-2.5 sm:gap-3 md:grid-cols-2">
                                                        {serviceTypes.map(
                                                             (type) => (
                                                                  <div
                                                                       key={
                                                                            type.id
                                                                       }
-                                                                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                                                      className={`p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all ${
                                                                            selectedServiceType ===
                                                                            type.id
-                                                                                ? "border-primary bg-primary/5"
-                                                                                : "border-border hover:border-primary/50"
+                                                                                ? "border-primary bg-primary/10"
+                                                                                : "border-border hover:border-primary/50 active:border-primary"
                                                                       }`}
                                                                       onClick={() =>
                                                                            setSelectedServiceType(
@@ -299,12 +306,12 @@ const PublicBooking = () => {
                                                                            )
                                                                       }
                                                                  >
-                                                                      <div className="font-semibold">
+                                                                      <div className="font-semibold text-sm sm:text-base">
                                                                            {
                                                                                 type.name
                                                                            }
                                                                       </div>
-                                                                      <div className="text-sm text-muted-foreground mt-1">
+                                                                      <div className="text-xs sm:text-sm text-muted-foreground mt-1">
                                                                            Duração:{" "}
                                                                            {
                                                                                 type.duration_minutes
@@ -329,13 +336,13 @@ const PublicBooking = () => {
 
                               {/* Horários disponíveis */}
                               {selectedServiceType && (
-                                   <Card className="mb-6">
-                                        <CardHeader>
-                                             <CardTitle className="flex items-center gap-2">
+                                   <Card className="mb-4 sm:mb-6">
+                                        <CardHeader className="pb-3 sm:pb-6">
+                                             <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                                                   <Calendar className="w-5 h-5" />
                                                   Horários Disponíveis
                                              </CardTitle>
-                                             <CardDescription>
+                                             <CardDescription className="text-sm">
                                                   {selectedType
                                                        ? `${selectedType.name} - ${selectedType.duration_minutes} minutos`
                                                        : ""}
@@ -344,11 +351,10 @@ const PublicBooking = () => {
                                         <CardContent>
                                              {Object.keys(slotsByDate)
                                                   .length === 0 ? (
-                                                  <div className="text-center py-8">
+                                                  <div className="text-center py-6 sm:py-8">
                                                        <p className="text-muted-foreground">
                                                             Nenhum horário
                                                             disponível para este
-                                                            serviço
                                                        </p>
                                                   </div>
                                              ) : (
@@ -362,10 +368,11 @@ const PublicBooking = () => {
                                                             ]) => (
                                                                  <div
                                                                       key={date}
+                                                                      className="space-y-3"
                                                                  >
-                                                                      <h3 className="font-semibold mb-3">
+                                                                      <h3 className="font-semibold text-base md:text-lg sticky top-0 bg-background py-2 border-b">
                                                                            {format(
-                                                                                new Date(
+                                                                                parseDateLocal(
                                                                                      date
                                                                                 ),
                                                                                 "EEEE, dd 'de' MMMM",
@@ -374,7 +381,7 @@ const PublicBooking = () => {
                                                                                 }
                                                                            )}
                                                                       </h3>
-                                                                      <div className="grid gap-2 md:grid-cols-4">
+                                                                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                                                                            {daySlots.map(
                                                                                 (
                                                                                      slot
@@ -389,13 +396,14 @@ const PublicBooking = () => {
                                                                                                     ? "default"
                                                                                                     : "outline"
                                                                                           }
-                                                                                          className="w-full"
+                                                                                          className="w-full h-12 text-base font-medium"
                                                                                           onClick={() =>
                                                                                                setSelectedSlot(
                                                                                                     slot
                                                                                                )
                                                                                           }
                                                                                      >
+                                                                                          <Clock className="w-4 h-4 mr-1.5" />
                                                                                           {slot.start_time.substring(
                                                                                                0,
                                                                                                5
